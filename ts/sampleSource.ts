@@ -5,8 +5,6 @@ type SampleCallback = (samples: Float32Array, endTimeS: number) => void;
 
 export class SampleSource {
   private mediaSource: MediaStreamAudioSourceNode;
-  private firstChunkSize: number = 0;
-  private firstChunk: Blob = null;
   private listeners = new Map<Object, SampleCallback>();
   readonly audioCtx: AudioContext;
   readonly audio: Audio;
@@ -41,43 +39,39 @@ export class SampleSource {
     this.listeners.delete(source);
   }
 
+  private previousMax = 0.0;
+
   private setUpAnalyser(mediaSource: MediaStreamAudioSourceNode) {
     const body = document.getElementsByTagName('body')[0];
-    const canvas = document.createElement('canvas');
-    canvas.width = 100;
-    canvas.height = 100;
-    body.appendChild(canvas);
-    const ctx = canvas.getContext('2d');
+    const div = document.createElement('div');
+    div.classList.add('vu');
+    body.appendChild(div);
 
     const analyser = this.audioCtx.createAnalyser();
     analyser.fftSize = 2048;
     this.mediaSource.connect(analyser);
     const dataArray = new Float32Array(analyser.frequencyBinCount);
     const render = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      analyser.getFloatTimeDomainData(dataArray)
-      let m = 0;
-      let s = 0;
+      analyser.getFloatTimeDomainData(dataArray);
+      let m = this.previousMax * 0.95;
       for (let i = 0; i < dataArray.length; ++i) {
-        const v = Math.pow(Math.abs(dataArray[i]), 0.3);
-        m = Math.max(m, v);
-        s += v;
+        m = Math.max(m, Math.abs(dataArray[i]));
       }
-      const thetaMax = Math.PI * m;
-      const thetaMean = Math.PI * s / dataArray.length;
-      const start = Math.PI / 2;
-      ctx.beginPath();
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = '#44f';
-      ctx.lineWidth = 25;
-      ctx.arc(50, 50, 30, start - thetaMean, start + thetaMean);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.strokeStyle = '#f48';
-      ctx.lineWidth = 5;
-      ctx.arc(50, 50, 30, start - thetaMax, start + thetaMax);
-      ctx.stroke();
-
+      this.previousMax = m;
+      div.innerText = m.toFixed(2);
+      if (m >= 0.9) {
+        div.classList.remove('low');
+        div.classList.remove('mid');
+        div.classList.add('hig');
+      } else if (m >= 0.5) {
+        div.classList.remove('low');
+        div.classList.add('mid');
+        div.classList.remove('hig');
+      } else {
+        div.classList.add('low');
+        div.classList.remove('mid');
+        div.classList.remove('hig');
+      }
       requestAnimationFrame(render);
     }
     requestAnimationFrame(render);

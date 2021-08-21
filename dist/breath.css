@@ -1,17 +1,21 @@
-canvas {
-  background-color: transparent;
+.vu {
+  font-family: 'Courier New', Courier, monospace;
+  color: black;
+  width: 90px;
+  height: 30px;
+  border-radius: 10px;
+  text-align: center;
+  padding: 5px;
 }
 
-.loopContainer {
-  display: inline-block;
-  margin: 5px;
-  background-color: lightgreen;
+.vu.low {
+  background-color: green;
 }
 
-.loopContainer:focus {
-  box-shadow: black 0px 0px 6px;
+.vu.mid {
+  background-color: yellow;
 }
 
-.muted {
-  background-color: lightgray;
+.vu.hig {
+  background-color: red;
 }
