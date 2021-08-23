@@ -37,6 +37,7 @@ export class BigButton {
       const playing = this.audioCtx.createBufferSource();
       playing.buffer = buffer;
       playing.loop = true;
+      playing.connect(this.audioCtx.destination);
       playing.start(pressTime);
     }
 
