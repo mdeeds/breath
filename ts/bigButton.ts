@@ -1,10 +1,17 @@
+import { SampleStream } from "./sampleStream";
 
 type ButtonMode = 'stopped' | 'playing' | 'recording' | 'overdubbing';
 
 export class BigButton {
   mode: ButtonMode = 'stopped';
   canvas: HTMLCanvasElement = null;
-  constructor() {
+  loopStartS: number = null;
+  loopLengthS: number = null;
+  audioCtx: AudioContext;
+  sampleStream: SampleStream;
+  constructor(audioContext: AudioContext, sampleStream: SampleStream) {
+    this.audioCtx = audioContext;
+    this.sampleStream = sampleStream;
     this.canvas = document.createElement('canvas');
     this.canvas.width = 400;
     this.canvas.height = 400;
@@ -19,11 +26,28 @@ export class BigButton {
   }
 
   press() {
+    const pressTime = this.audioCtx.currentTime;
+
+    if (this.mode === 'recording' || this.mode === 'overdubbing') {
+      if (!this.loopLengthS) {
+        this.loopLengthS = pressTime - this.loopStartS;
+      }
+      const buffer = this.sampleStream.createAudioBuffer(
+        this.loopStartS, pressTime);
+      const playing = this.audioCtx.createBufferSource();
+      playing.buffer = buffer;
+      playing.loop = true;
+      playing.start(pressTime);
+    }
+
     switch (this.mode) {
       case 'stopped': this.mode = 'recording'; break;
       case 'playing': this.mode = 'overdubbing'; break;
       case 'recording': this.mode = 'overdubbing'; break;
       case 'overdubbing': this.mode = 'playing'; break;
+    }
+    if (this.mode === 'recording' || this.mode === 'overdubbing') {
+      this.loopStartS = pressTime;
     }
   }
 

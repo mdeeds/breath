@@ -5,7 +5,7 @@ type SampleCallback = (samples: Float32Array, endTimeS: number) => void;
 
 export class SampleSource {
   private mediaSource: MediaStreamAudioSourceNode;
-  private listeners = new Map<Object, SampleCallback>();
+  private listener: SampleCallback;
   readonly audioCtx: AudioContext;
   readonly audio: Audio;
 
@@ -31,12 +31,8 @@ export class SampleSource {
     });
   }
 
-  public addListener(source: Object, callback: SampleCallback) {
-    this.listeners.set(source, callback);
-  }
-
-  public removeListener(source: Object) {
-    this.listeners.delete(source);
+  public setListener(callback: SampleCallback) {
+    this.listener = callback;
   }
 
   private previousMax = 0.0;
@@ -89,14 +85,13 @@ export class SampleSource {
     let workerElapsedFrames = 0;
 
     worklet.port.onmessage = (event) => {
-      for (const listener of this.listeners.values()) {
-        setTimeout(() => {
-          workerElapsedFrames += event.data.newSamples.length;
-          const chunkEndTime = workerStartTime +
-            workerElapsedFrames / this.audioCtx.sampleRate;
-          listener(event.data.newSamples, chunkEndTime);
-        }, 0);
-      }
+      setTimeout(() => {
+        workerElapsedFrames += event.data.newSamples.length;
+        const chunkEndTime = workerStartTime +
+          workerElapsedFrames / this.audioCtx.sampleRate;
+        this.listener(event.data.newSamples, chunkEndTime);
+
+      }, 0);
     }
 
     this.mediaSource.connect(worklet);
