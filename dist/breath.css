@@ -19,3 +19,8 @@
 .vu.hig {
   background-color: red;
 }
+
+.bigButton {
+  width: 100px;
+  height: 100px;
+}
