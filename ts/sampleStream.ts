@@ -1,10 +1,21 @@
 import { SampleSource } from "./sampleSource";
 
+class PendingWork {
+  buffer: Float32Array;
+  startOffset: number;
+  constructor(buffer: Float32Array, startOffset: number) {
+    this.buffer = buffer;
+    this.startOffset = startOffset;
+  }
+}
+
 export class SampleStream {
   private audioCtx: AudioContext;
   private chunks: Float32Array[] = [];
   private endTimeS: number;
   private startTimeS: number;
+
+  private pending: PendingWork[] = [];
 
   constructor(sampleSource: SampleSource, audioContext: AudioContext) {
     this.audioCtx = audioContext;
@@ -38,12 +49,24 @@ export class SampleStream {
       ++chunkIndex;
     }
     console.log(`Using ${targetOffset} frames.  ${framesRemaining} blank.`);
-    // TODO: Pad out on next callback
+    if (framesRemaining > 0) {
+      this.pending.push(new PendingWork(data, data.length - framesRemaining));
+    }
     while (framesRemaining > 0) {
       data[targetOffset++] = 0;
       --framesRemaining;
     }
     return buffer;
+  }
+
+  private fillWork(pending: PendingWork, source: Float32Array) {
+    const buffer = pending.buffer;
+    let targetOffset = pending.startOffset;
+    let sourceOffset = 0;
+    while (targetOffset < buffer.length && sourceOffset < source.length) {
+      buffer[targetOffset++] = source[sourceOffset++];
+    }
+    pending.startOffset = targetOffset;
   }
 
   private handleSamples(samples: Float32Array, endTimeS: number) {
@@ -52,6 +75,16 @@ export class SampleStream {
       this.startTimeS = endTimeS - durationS;
       this.endTimeS = this.startTimeS;
     }
+
+    for (const pendingItem of this.pending) {
+      this.fillWork(pendingItem, samples);
+    }
+
+    while (this.pending.length > 0 &&
+      this.pending[0].startOffset >= this.pending[0].buffer.length) {
+      this.pending.shift();
+    }
+
     this.chunks.push(samples);
     this.endTimeS += durationS;
   }
