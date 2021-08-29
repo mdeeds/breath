@@ -1,3 +1,4 @@
+import { Clip } from "./clip";
 import { SampleStream } from "./sampleStream";
 
 type ButtonMode = 'stopped' | 'playing' | 'recording' | 'overdubbing';
@@ -25,6 +26,8 @@ export class BigButton {
     this.render();
   }
 
+  private kPaddingS: number = 1.0;
+
   press() {
     const pressTime = this.audioCtx.currentTime;
 
@@ -33,12 +36,10 @@ export class BigButton {
         this.loopLengthS = pressTime - this.loopStartS;
       }
       const buffer = this.sampleStream.createAudioBuffer(
-        this.loopStartS, pressTime);
-      const playing = this.audioCtx.createBufferSource();
-      playing.buffer = buffer;
-      playing.loop = true;
-      playing.connect(this.audioCtx.destination);
-      playing.start(pressTime);
+        this.loopStartS - this.kPaddingS, pressTime + this.kPaddingS);
+      const clip = new Clip(this.audioCtx,
+        buffer, this.kPaddingS, this.loopLengthS);
+      clip.start(pressTime);
     }
 
     switch (this.mode) {
