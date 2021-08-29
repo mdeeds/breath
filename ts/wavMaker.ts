@@ -4,8 +4,14 @@
 // Not sure how to use an offline audio context or otherwise create an offline stream...
 export class WavMaker {
   static makeWav(audioContext: AudioContext, buffer: AudioBuffer, startOffsetS: number, durationS: number): DataView {
-    // TODO
-    throw new Error('not implemented');
+    const samples = new Float32Array(audioContext.sampleRate * durationS);
+    let sampleIndex = 0;
+    let sourceIndex = Math.trunc(startOffsetS * audioContext.sampleRate);
+    const sourceData = buffer.getChannelData(0);
+    while (sampleIndex < samples.length) {
+      samples[sampleIndex++] = sourceData[sourceIndex++];
+    }
+    return WavMaker.makeWavFromFloat32(audioContext.sampleRate, samples);
   }
 
   private static floatTo16BitPCM(output: DataView, offset: number, input: Float32Array) {

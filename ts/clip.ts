@@ -31,15 +31,39 @@ export class Clip {
         case 'Space': this.start(this.audioCtx.currentTime); break;
       }
     });
-    this.div.addEventListener('dragstart', (ev: DragEvent) => {
+    this.div.addEventListener('dragstart', async (ev: DragEvent) => {
       const data = WavMaker.makeWav(
         this.audioCtx, this.buffer, this.startOffsetS, this.durationS);
       // const f = new File([data.buffer], "clip.wav");
       // ev.dataTransfer.files = [f];
-      const stringData = String.fromCharCode(...new Uint8Array(data.buffer));
-      ev.dataTransfer.setData("audio/webm", stringData);
+      const stringData = await this.DataURLFromUint8(new Uint8Array(data.buffer));
+      ev.dataTransfer.setData("audio/x-wav", stringData);  // webm?
       ev.dataTransfer.effectAllowed = "copy";
     });
+    this.makeDownload();
+  }
+
+  private async makeDownload() {
+    const a = document.createElement('a');
+    const data = WavMaker.makeWav(
+      this.audioCtx, this.buffer, this.startOffsetS, this.durationS);
+    // const f = new File([data.buffer], "clip.wav");
+    // ev.dataTransfer.files = [f];
+    a.href = await this.DataURLFromUint8(new Uint8Array(data.buffer));
+    a.download = 'clip.wav';
+    a.innerText = 'download';
+    this.div.appendChild(a);
+  }
+
+  private async DataURLFromUint8(data: Uint8Array): Promise<string> {
+    // Use a FileReader to generate a base64 data URI
+    const base64url: string = await new Promise(
+      (resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result.toString())
+        reader.readAsDataURL(new Blob([data]))
+      })
+    return base64url;
   }
 
   private durationToBeats(durationS: number) {
