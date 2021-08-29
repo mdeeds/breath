@@ -86,6 +86,16 @@ export class SampleStream {
     }
 
     this.chunks.push(samples);
+
+    let recordedDurationS = this.endTimeS - this.startTimeS;
+    // Maximum 15 minutes of recording time.  Rather excessive.
+    while (recordedDurationS > 60 * 15) {
+      const chunkDuration = this.chunks[0].length / this.audioCtx.sampleRate;
+      this.startTimeS += chunkDuration;
+      recordedDurationS -= chunkDuration;
+      this.chunks.shift();
+    }
+
     this.endTimeS += durationS;
   }
 }
