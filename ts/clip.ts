@@ -7,6 +7,7 @@ export class Clip {
   private audioCtx: AudioContext;
   private audioNode: AudioBufferSourceNode = null;
   private div: HTMLDivElement;
+  private armed: boolean;
 
   constructor(
     audioContext: AudioContext,
@@ -15,6 +16,7 @@ export class Clip {
     this.startOffsetS = startOffsetS;
     this.durationS = durationS;
     this.buffer = buffer;
+    this.armed = false;
 
     this.div = document.createElement('div');
     this.div.innerText = 'clip';
@@ -40,6 +42,12 @@ export class Clip {
       ev.dataTransfer.setData("audio/x-wav", stringData);  // webm?
       ev.dataTransfer.effectAllowed = "copy";
     });
+
+    this.div.addEventListener('pointerdown', (ev: PointerEvent) => {
+      this.div.classList.toggle('armed');
+      this.armed = this.div.classList.contains('armed');
+    });
+
     this.makeDownload();
   }
 

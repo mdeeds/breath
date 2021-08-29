@@ -26,10 +26,16 @@
 }
 
 .clip {
+  color: darkgray;
   border-radius: 5px;
   box-shadow: grey 5px 5px 5px;
 }
 
 .clip.focus {
   box-shadow: pink 5px 5px 3px;
+}
+
+.clip.armed {
+  color: black;
+  background-color: lightblue;
 }
