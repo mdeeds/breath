@@ -1,3 +1,5 @@
+import { WavMaker } from "./wavMaker";
+
 export class Clip {
   private startOffsetS: number;
   private durationS: number;
@@ -18,6 +20,7 @@ export class Clip {
     this.div.innerText = 'clip';
     this.div.classList.add('clip');
     this.div.tabIndex = 1;
+    this.div.draggable = true;
     document.getElementsByTagName('body')[0].appendChild(this.div);
     this.div.addEventListener('keydown', (ev: KeyboardEvent) => {
       switch (ev.code) {
@@ -27,6 +30,15 @@ export class Clip {
         case 'ArrowUp': this.changeDuration(-0.01); break;
         case 'Space': this.start(this.audioCtx.currentTime); break;
       }
+    });
+    this.div.addEventListener('dragstart', (ev: DragEvent) => {
+      const data = WavMaker.makeWav(
+        this.audioCtx, this.buffer, this.startOffsetS, this.durationS);
+      // const f = new File([data.buffer], "clip.wav");
+      // ev.dataTransfer.files = [f];
+      const stringData = String.fromCharCode(...new Uint8Array(data.buffer));
+      ev.dataTransfer.setData("audio/webm", stringData);
+      ev.dataTransfer.effectAllowed = "copy";
     });
   }
 
