@@ -6,7 +6,6 @@ export class Clip {
   private buffer: AudioBuffer;
   private audioCtx: AudioContext;
   private audioNode: AudioBufferSourceNode = null;
-  private div: HTMLDivElement;
   private armed: boolean;
 
   constructor(
@@ -17,50 +16,14 @@ export class Clip {
     this.durationS = durationS;
     this.buffer = buffer;
     this.armed = false;
-
-    this.div = document.createElement('div');
-    this.div.innerText = 'clip';
-    this.div.classList.add('clip');
-    this.div.tabIndex = 1;
-    this.div.draggable = true;
-    document.getElementsByTagName('body')[0].appendChild(this.div);
-    this.div.addEventListener('keydown', (ev: KeyboardEvent) => {
-      switch (ev.code) {
-        case 'ArrowRight': this.changeStart(0.01); break;
-        case 'ArrowLeft': this.changeStart(-0.01); break;
-        case 'ArrowDown': this.changeDuration(0.01); break;
-        case 'ArrowUp': this.changeDuration(-0.01); break;
-        case 'Space': this.start(this.audioCtx.currentTime); break;
-      }
-    });
-    this.div.addEventListener('dragstart', async (ev: DragEvent) => {
-      const data = WavMaker.makeWav(
-        this.audioCtx, this.buffer, this.startOffsetS, this.durationS);
-      // const f = new File([data.buffer], "clip.wav");
-      // ev.dataTransfer.files = [f];
-      const stringData = await this.DataURLFromUint8(new Uint8Array(data.buffer));
-      ev.dataTransfer.setData("audio/x-wav", stringData);  // webm?
-      ev.dataTransfer.effectAllowed = "copy";
-    });
-
-    this.div.addEventListener('pointerdown', (ev: PointerEvent) => {
-      this.div.classList.toggle('armed');
-      this.armed = this.div.classList.contains('armed');
-    });
-
-    this.makeDownload();
   }
 
-  private async makeDownload() {
-    const a = document.createElement('a');
-    const data = WavMaker.makeWav(
-      this.audioCtx, this.buffer, this.startOffsetS, this.durationS);
-    // const f = new File([data.buffer], "clip.wav");
-    // ev.dataTransfer.files = [f];
-    a.href = await this.DataURLFromUint8(new Uint8Array(data.buffer));
-    a.download = 'clip.wav';
-    a.innerText = 'download';
-    this.div.appendChild(a);
+  public isArmed() {
+    return this.armed;
+  }
+
+  public setArmed(armed: boolean) {
+    this.armed = armed;
   }
 
   private async DataURLFromUint8(data: Uint8Array): Promise<string> {
@@ -82,6 +45,12 @@ export class Clip {
       beats *= 2;
     }
     return { beats: beats, bpm: bpm };
+  }
+  public stop(stopTimeS: number) {
+    if (this.audioNode) {
+      this.audioNode.stop(stopTimeS);
+      this.audioNode = null;
+    }
   }
 
   public start(startTimeS: number) {
@@ -109,7 +78,17 @@ export class Clip {
     if (this.durationS < 0.1) {
       this.durationS = 0.1;
     }
-    this.div.innerText = JSON.stringify(this.durationToBeats(this.durationS));
     this.start(this.audioCtx.currentTime);
+  }
+
+  public async toDataUri(): Promise<string> {
+    const data = WavMaker.makeWav(
+      this.audioCtx, this.buffer, this.startOffsetS, this.durationS);
+    // const f = new File([data.buffer], "clip.wav");
+    // ev.dataTransfer.files = [f];
+    const stringData = await this.DataURLFromUint8(new Uint8Array(data.buffer));
+    return new Promise((resolve, reject) => {
+      resolve(stringData);
+    });
   }
 }
