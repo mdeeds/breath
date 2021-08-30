@@ -1,3 +1,4 @@
+import { MeasuresAndRemainder } from "./measuresAndRemainder";
 import { WavMaker } from "./wavMaker";
 
 export class Clip {
@@ -86,14 +87,12 @@ export class Clip {
   }
 
   public getDuration(): number {
-    return this.loopDurationS;
+    return this.naturalDurationS;
   }
 
   public setBpm(bpm: number) {
-    let secondsPerMeasure = 4 * 60 / bpm;
-    let measureCount =
-      Math.round(this.naturalDurationS / secondsPerMeasure);
-    measureCount = Math.max(1, measureCount);
-    this.loopDurationS = measureCount * secondsPerMeasure;
+    const mar = new MeasuresAndRemainder(this.naturalDurationS, bpm);
+    this.loopDurationS = mar.quantizedS;
+    this.start(this.audioCtx.currentTime);
   }
 }

@@ -24,8 +24,16 @@ export class ClipMaster {
       }
       let actionTaken = true;
       switch (ev.code) {
-        case 'Equal': this.bpm += 0.1; break;
-        case 'Minus': this.bpm -= 0.1; break;
+        case 'Equal':
+        case 'ArrowRight':
+        case 'ArrowUp':
+          this.bpm += 0.1;
+          break;
+        case 'Minus':
+        case 'ArrowLeft':
+        case 'ArrowDown':
+          this.bpm -= 0.1;
+          break;
         default: actionTaken = false; break;
       }
       if (actionTaken) {
@@ -65,5 +73,9 @@ export class ClipMaster {
       this.durationToBeats(clip.getDuration());
     }
     clip.setBpm(this.bpm);
+  }
+
+  public getBpm(): number {
+    return this.bpm;
   }
 }

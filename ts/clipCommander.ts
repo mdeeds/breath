@@ -1,5 +1,6 @@
 import { Clip } from "./clip";
 import { ClipMaster } from "./clipMaster";
+import { MeasuresAndRemainder } from "./measuresAndRemainder";
 
 export class ClipCommander {
   private div: HTMLDivElement;
@@ -26,14 +27,16 @@ export class ClipCommander {
       switch (ev.code) {
         case 'ArrowRight': this.clip.changeStart(0.01); break;
         case 'ArrowLeft': this.clip.changeStart(-0.01); break;
-        case 'ArrowDown': this.clip.changeDuration(0.01); break;
-        case 'ArrowUp': this.clip.changeDuration(-0.01); break;
+        case 'ArrowDown': this.clip.changeDuration(-0.1); break;
+        case 'ArrowUp': this.clip.changeDuration(0.1); break;
         default: actionTaken = false;
       }
       if (actionTaken) {
         this.makeDownload();  // TODO: Debounce?
         // this.div.innerText = JSON.stringify(this.durationToBeats(this.durationS));
 
+        const mar = new MeasuresAndRemainder(this.clip.getDuration(), this.clipMaster.getBpm());
+        this.div.innerText = `${mar.measures} bars (${mar.remainderS})`;
         // TODO: retrigger all clips
       }
     });
