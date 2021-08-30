@@ -11,6 +11,7 @@ export class ClipCommander {
     audioContext: AudioContext,
     buffer: AudioBuffer, startOffsetS: number, durationS: number,
     clipMaster: ClipMaster) {
+    this.clipMaster = clipMaster;
     this.clip = new Clip(
       audioContext, buffer, startOffsetS, durationS);
 
@@ -19,7 +20,8 @@ export class ClipCommander {
     this.div.classList.add('clip');
     this.div.tabIndex = 1;
     this.div.draggable = true;
-    document.getElementsByTagName('body')[0].appendChild(this.div);
+    const body = document.getElementsByTagName('body')[0];
+    body.appendChild(this.div);
     this.div.addEventListener('keydown', (ev: KeyboardEvent) => {
       let actionTaken: boolean = true;
       switch (ev.code) {
@@ -47,6 +49,7 @@ export class ClipCommander {
       this.clip.setArmed(this.div.classList.contains('armed'));
     });
 
+    this.clipMaster.addClip(this.clip);
     this.makeDownload();
   }
 

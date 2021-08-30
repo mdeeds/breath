@@ -1,3 +1,14 @@
+body {
+  font-family: 'Courier New', Courier, monospace;
+  color: black;
+  size: 12px;
+}
+
+.bpmText {
+  color: #666;
+  font-size: 8px;
+}
+
 .vu {
   font-family: 'Courier New', Courier, monospace;
   color: black;

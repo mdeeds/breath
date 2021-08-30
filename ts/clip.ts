@@ -37,15 +37,6 @@ export class Clip {
     return base64url;
   }
 
-  private durationToBeats(durationS: number) {
-    let bpm = 60.0 / durationS;
-    let beats = 1;
-    while (bpm < 96) {
-      bpm *= 2;
-      beats *= 2;
-    }
-    return { beats: beats, bpm: bpm };
-  }
   public stop(stopTimeS: number) {
     if (this.audioNode) {
       this.audioNode.stop(stopTimeS);
@@ -90,5 +81,9 @@ export class Clip {
     return new Promise((resolve, reject) => {
       resolve(stringData);
     });
+  }
+
+  public getDuration(): number {
+    return this.buffer.length / this.audioCtx.sampleRate;
   }
 }
