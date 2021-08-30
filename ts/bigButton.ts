@@ -3,7 +3,7 @@ import { ClipCommander } from "./clipCommander";
 import { ClipMaster } from "./clipMaster";
 import { SampleStream } from "./sampleStream";
 
-type ButtonMode = 'stopped' | 'playing' | 'recording' | 'overdubbing';
+type ButtonMode = 'stopped' | 'recording';
 
 export class BigButton {
   mode: ButtonMode = 'stopped';
@@ -14,6 +14,7 @@ export class BigButton {
   sampleStream: SampleStream;
   clipMaster: ClipMaster;
   constructor(audioContext: AudioContext, sampleStream: SampleStream) {
+    this.clipMaster = new ClipMaster();
     this.audioCtx = audioContext;
     this.sampleStream = sampleStream;
     this.canvas = document.createElement('canvas');
@@ -34,10 +35,8 @@ export class BigButton {
   press() {
     const pressTime = this.audioCtx.currentTime;
 
-    if (this.mode === 'recording' || this.mode === 'overdubbing') {
-      if (!this.loopLengthS) {
-        this.loopLengthS = pressTime - this.loopStartS;
-      }
+    if (this.mode === 'recording') {
+      this.loopLengthS = pressTime - this.loopStartS;
       const buffer = this.sampleStream.createAudioBuffer(
         this.loopStartS - this.kPaddingS, pressTime + this.kPaddingS);
 
@@ -47,11 +46,9 @@ export class BigButton {
 
     switch (this.mode) {
       case 'stopped': this.mode = 'recording'; break;
-      case 'playing': this.mode = 'overdubbing'; break;
-      case 'recording': this.mode = 'overdubbing'; break;
-      case 'overdubbing': this.mode = 'playing'; break;
+      case 'recording': this.mode = 'stopped'; break;
     }
-    if (this.mode === 'recording' || this.mode === 'overdubbing') {
+    if (this.mode === 'recording') {
       this.loopStartS = pressTime;
     }
   }
@@ -61,9 +58,7 @@ export class BigButton {
     ctx.strokeStyle = 'black';
     switch (this.mode) {
       case 'stopped': ctx.strokeStyle = '#000'; break;
-      case 'playing': ctx.strokeStyle = '#0f0'; break;
       case 'recording': ctx.strokeStyle = '#f00'; break;
-      case 'overdubbing': ctx.strokeStyle = '#aa0'; break;
     }
     ctx.lineWidth = 40;
     ctx.lineCap = 'round';
