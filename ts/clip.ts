@@ -2,7 +2,8 @@ import { WavMaker } from "./wavMaker";
 
 export class Clip {
   private startOffsetS: number;
-  private durationS: number;
+  private loopDurationS: number;
+  private naturalDurationS: number;
   private buffer: AudioBuffer;
   private audioCtx: AudioContext;
   private audioNode: AudioBufferSourceNode = null;
@@ -13,7 +14,8 @@ export class Clip {
     buffer: AudioBuffer, startOffsetS: number, durationS: number) {
     this.audioCtx = audioContext;
     this.startOffsetS = startOffsetS;
-    this.durationS = durationS;
+    this.naturalDurationS = durationS;
+    this.loopDurationS = durationS;
     this.buffer = buffer;
     this.armed = false;
   }
@@ -54,7 +56,7 @@ export class Clip {
     this.audioNode.buffer = this.buffer;
     this.audioNode.loop = true;
     this.audioNode.loopStart = this.startOffsetS;
-    this.audioNode.loopEnd = this.startOffsetS + this.durationS;
+    this.audioNode.loopEnd = this.startOffsetS + this.loopDurationS;
     this.audioNode.connect(this.audioCtx.destination);
     this.audioNode.start(startTimeS, this.startOffsetS);
   }
@@ -65,16 +67,16 @@ export class Clip {
   }
 
   public changeDuration(deltaS: number) {
-    this.durationS += deltaS;
-    if (this.durationS < 0.1) {
-      this.durationS = 0.1;
+    this.naturalDurationS += deltaS;
+    if (this.naturalDurationS < 0.1) {
+      this.naturalDurationS = 0.1;
     }
     this.start(this.audioCtx.currentTime);
   }
 
   public async toDataUri(): Promise<string> {
     const data = WavMaker.makeWav(
-      this.audioCtx, this.buffer, this.startOffsetS, this.durationS);
+      this.audioCtx, this.buffer, this.startOffsetS, this.loopDurationS);
     // const f = new File([data.buffer], "clip.wav");
     // ev.dataTransfer.files = [f];
     const stringData = await this.DataURLFromUint8(new Uint8Array(data.buffer));
@@ -84,6 +86,14 @@ export class Clip {
   }
 
   public getDuration(): number {
-    return this.buffer.length / this.audioCtx.sampleRate;
+    return this.loopDurationS;
+  }
+
+  public setBpm(bpm: number) {
+    let secondsPerMeasure = 4 * 60 / bpm;
+    let measureCount =
+      Math.round(this.naturalDurationS / secondsPerMeasure);
+    measureCount = Math.max(1, measureCount);
+    this.loopDurationS = measureCount * secondsPerMeasure;
   }
 }

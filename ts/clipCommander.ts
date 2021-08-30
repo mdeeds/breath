@@ -3,7 +3,6 @@ import { ClipMaster } from "./clipMaster";
 
 export class ClipCommander {
   private div: HTMLDivElement;
-  private clipCommander: Clip;
   private clipMaster: ClipMaster;
   private clip: Clip;
 
