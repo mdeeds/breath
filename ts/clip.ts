@@ -64,7 +64,6 @@ export class Clip {
 
   public changeStart(deltaS: number) {
     this.startOffsetS += deltaS;
-    this.start(this.audioCtx.currentTime);
   }
 
   public changeDuration(deltaS: number) {
@@ -72,7 +71,6 @@ export class Clip {
     if (this.naturalDurationS < 0.1) {
       this.naturalDurationS = 0.1;
     }
-    this.start(this.audioCtx.currentTime);
   }
 
   public async toDataUri(): Promise<string> {
@@ -93,6 +91,5 @@ export class Clip {
   public setBpm(bpm: number) {
     const mar = new MeasuresAndRemainder(this.naturalDurationS, bpm);
     this.loopDurationS = mar.quantizedS;
-    this.start(this.audioCtx.currentTime);
   }
 }

@@ -14,7 +14,7 @@ export class BigButton {
   sampleStream: SampleStream;
   clipMaster: ClipMaster;
   constructor(audioContext: AudioContext, sampleStream: SampleStream) {
-    this.clipMaster = new ClipMaster();
+    this.clipMaster = new ClipMaster(audioContext);
     this.audioCtx = audioContext;
     this.sampleStream = sampleStream;
     this.canvas = document.createElement('canvas');

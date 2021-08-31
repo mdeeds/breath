@@ -1,4 +1,3 @@
-import { Key } from "readline";
 import { Clip } from "./clip";
 
 export class ClipMaster {
@@ -6,7 +5,7 @@ export class ClipMaster {
   private bpmDiv: HTMLSpanElement;
   private bpm: number = null;
 
-  constructor() {
+  constructor(audioContext: AudioContext) {
     const body = document.getElementsByTagName('body')[0];
     const bpmContainer = document.createElement('div');
     this.bpmDiv = document.createElement('span');
@@ -41,6 +40,7 @@ export class ClipMaster {
           c.setBpm(this.bpm);
         }
         this.bpmDiv.innerText = this.bpm.toFixed(1);
+        this.start(audioContext.currentTime);
       }
     });
   }
@@ -58,7 +58,7 @@ export class ClipMaster {
   private durationToBeats(durationS: number) {
     let bpm = 60.0 / durationS;
     let beats = 1;
-    while (bpm < 96) {
+    while (bpm < 84) {
       bpm *= 2;
       beats *= 2;
     }

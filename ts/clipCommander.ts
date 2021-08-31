@@ -3,19 +3,21 @@ import { ClipMaster } from "./clipMaster";
 import { MeasuresAndRemainder } from "./measuresAndRemainder";
 
 export class ClipCommander {
-  private div: HTMLDivElement;
+  private div: HTMLDivElement | HTMLSpanElement;
   private clipMaster: ClipMaster;
   private clip: Clip;
+  private audioCtx: AudioContext;
 
   constructor(
     audioContext: AudioContext,
     buffer: AudioBuffer, startOffsetS: number, durationS: number,
     clipMaster: ClipMaster) {
+    this.audioCtx = audioContext;
     this.clipMaster = clipMaster;
     this.clip = new Clip(
       audioContext, buffer, startOffsetS, durationS);
 
-    this.div = document.createElement('div');
+    this.div = document.createElement('span');
     this.div.innerText = 'clip';
     this.div.classList.add('clip');
     this.div.tabIndex = 1;
@@ -32,12 +34,11 @@ export class ClipCommander {
         default: actionTaken = false;
       }
       if (actionTaken) {
-        this.makeDownload();  // TODO: Debounce?
-        // this.div.innerText = JSON.stringify(this.durationToBeats(this.durationS));
-
         const mar = new MeasuresAndRemainder(this.clip.getDuration(), this.clipMaster.getBpm());
-        this.div.innerText = `${mar.measures} bars (${mar.remainderS})`;
-        // TODO: retrigger all clips
+        this.div.innerText =
+          `${mar.measures} bars (${mar.remainderS.toFixed(3)})`;
+        this.makeDownload();  // TODO: debounce?
+        this.clipMaster.start(audioContext.currentTime);
       }
     });
 
@@ -49,6 +50,7 @@ export class ClipCommander {
     this.div.addEventListener('pointerdown', (ev: PointerEvent) => {
       this.div.classList.toggle('armed');
       this.clip.setArmed(this.div.classList.contains('armed'));
+      this.clipMaster.start(this.audioCtx.currentTime);
     });
 
     this.clipMaster.addClip(this.clip);
