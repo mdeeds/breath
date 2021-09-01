@@ -24,6 +24,21 @@ export class Clip {
     return this.armed;
   }
 
+  public getSamples(centerS: number, target: Float32Array) {
+    const startS = (centerS + this.startOffsetS) - target.length / this.audioCtx.sampleRate;
+    let sourceIndex = Math.round(startS * this.audioCtx.sampleRate);
+    console.log(`Source index: ${sourceIndex}`);
+    const sampleBuffer = this.buffer.getChannelData(0);
+    for (let i = 0; i < target.length; ++i) {
+      if (sourceIndex < 0) {
+        target[i] = 0;
+      } else {
+        target[i] = sampleBuffer[sourceIndex];
+      }
+      ++sourceIndex;
+    }
+  }
+
   public setArmed(armed: boolean) {
     this.armed = armed;
   }

@@ -7,6 +7,8 @@ export class ClipCommander {
   private clipMaster: ClipMaster;
   private clip: Clip;
   private audioCtx: AudioContext;
+  private canvas: HTMLCanvasElement;
+  private samples: Float32Array;
 
   constructor(
     audioContext: AudioContext,
@@ -18,7 +20,6 @@ export class ClipCommander {
       audioContext, buffer, startOffsetS, durationS);
 
     this.div = document.createElement('span');
-    this.div.innerText = 'clip';
     this.div.classList.add('clip');
     this.div.tabIndex = 1;
     this.div.draggable = true;
@@ -26,6 +27,15 @@ export class ClipCommander {
     this.clip.setArmed(true);
     const body = document.getElementsByTagName('body')[0];
     body.appendChild(this.div);
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = this.div.clientWidth * 2;
+    this.canvas.height = this.div.clientHeight * 2;
+    this.canvas.style.setProperty('width', `${this.div.clientWidth}px`);
+    this.canvas.style.setProperty('height', `${this.div.clientHeight}px`);
+    this.div.appendChild(this.canvas);
+
+    this.samples = new Float32Array(this.canvas.width);
+
     this.div.addEventListener('keydown', (ev: KeyboardEvent) => {
       let actionTaken: boolean = true;
       switch (ev.code) {
@@ -61,10 +71,36 @@ export class ClipCommander {
     this.makeDownload();
   }
 
+  private renderPeaks(ctx: CanvasRenderingContext2D, samples: Float32Array) {
+    let x = 0;
+    ctx.fillStyle = 'black'
+    for (const v of samples) {
+      const absV = Math.pow(Math.abs(v), 0.4);
+      const h = absV * this.canvas.height;
+      const y = this.canvas.height - 0.9 * h;
+      ctx.fillRect(x++, y, 1, absV * this.canvas.height);
+    }
+  }
+
   updateBody() {
     const mar = new MeasuresAndRemainder(this.clip.getDuration(), this.clipMaster.getBpm());
-    this.div.innerText = `${mar.measures.toFixed(0)}`;
     this.makeDownload();  // TODO: debounce?
+
+    const ctx = this.canvas.getContext('2d');
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    const r = this.canvas.width / 2;
+    ctx.strokeStyle = 'purple';
+    ctx.lineWidth = 50;
+    ctx.lineCap = 'round';
+    ctx.arc(r, r, r, -Math.PI, Math.PI);
+    ctx.stroke();
+
+    this.clip.getSamples(0, this.samples);
+    this.renderPeaks(ctx, this.samples);
+
+    ctx.font = 'bold 90px mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${mar.measures.toFixed(0)}`, r, r + 90 / 2);
   }
 
   private async makeDownload() {
