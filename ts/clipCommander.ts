@@ -36,11 +36,8 @@ export class ClipCommander {
         default: actionTaken = false;
       }
       if (actionTaken) {
-        const mar = new MeasuresAndRemainder(this.clip.getDuration(), this.clipMaster.getBpm());
-        this.div.innerText =
-          `${mar.measures} bars (${mar.remainderS.toFixed(3)})`;
-        this.makeDownload();  // TODO: debounce?
-        this.clipMaster.start(audioContext.currentTime);
+        this.updateBody();
+        this.clipMaster.start(this.audioCtx.currentTime);
       }
     });
 
@@ -50,13 +47,24 @@ export class ClipCommander {
     });
 
     this.div.addEventListener('pointerdown', (ev: PointerEvent) => {
+      if (this.div != document.activeElement) {
+        this.div.focus();
+        return;
+      }
       this.div.classList.toggle('armed');
       this.clip.setArmed(this.div.classList.contains('armed'));
       this.clipMaster.start(this.audioCtx.currentTime);
     });
 
     this.clipMaster.addClip(this.clip);
+    this.updateBody();
     this.makeDownload();
+  }
+
+  updateBody() {
+    const mar = new MeasuresAndRemainder(this.clip.getDuration(), this.clipMaster.getBpm());
+    this.div.innerText = `${mar.measures.toFixed(0)}`;
+    this.makeDownload();  // TODO: debounce?
   }
 
   private async makeDownload() {
@@ -68,7 +76,7 @@ export class ClipCommander {
     if (a === null) {
       a = document.createElement('a');
       a.download = 'clip.wav';
-      a.innerText = 'download';
+      a.innerHTML = '&#x21e9;';
       this.div.appendChild(a);
     }
     a.href = await this.clip.toDataUri();
