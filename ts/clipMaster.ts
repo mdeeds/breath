@@ -4,6 +4,7 @@ export class ClipMaster {
   private clips: Clip[] = [];
   private bpmDiv: HTMLSpanElement;
   private bpm: number = null;
+  private startTimeS: number = null;
 
   constructor(audioContext: AudioContext) {
     const body = document.getElementsByTagName('body')[0];
@@ -45,7 +46,8 @@ export class ClipMaster {
     });
   }
 
-  start(startTimeS: number) {
+  public start(startTimeS: number) {
+    this.startTimeS = startTimeS;
     for (const clip of this.clips) {
       if (clip.isArmed()) {
         clip.start(startTimeS);
@@ -53,6 +55,16 @@ export class ClipMaster {
         clip.stop(startTimeS);
       }
     }
+  }
+
+  public nearestDownBeat(referenceTimeS: number) {
+    if (!this.startTimeS || !this.bpm) {
+      return referenceTimeS;
+    }
+    const elapsed = referenceTimeS - this.startTimeS;
+    const secondsPerMeasure = 4 * 60 / this.bpm;
+    const measureNumber = Math.round(elapsed / secondsPerMeasure);
+    return this.startTimeS + measureNumber * secondsPerMeasure;
   }
 
   private durationToBeats(durationS: number) {

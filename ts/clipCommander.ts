@@ -22,6 +22,8 @@ export class ClipCommander {
     this.div.classList.add('clip');
     this.div.tabIndex = 1;
     this.div.draggable = true;
+    this.div.classList.add('armed');
+    this.clip.setArmed(true);
     const body = document.getElementsByTagName('body')[0];
     body.appendChild(this.div);
     this.div.addEventListener('keydown', (ev: KeyboardEvent) => {

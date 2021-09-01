@@ -18,7 +18,6 @@ export class Clip {
     this.naturalDurationS = durationS;
     this.loopDurationS = durationS;
     this.buffer = buffer;
-    this.armed = false;
   }
 
   public isArmed() {

@@ -27,13 +27,21 @@ export class BigButton {
 
     const body = document.getElementsByTagName('body')[0];
     body.appendChild(this.canvas);
+
+    body.addEventListener('keydown', (ev: KeyboardEvent) => {
+      if (ev.code === 'Space') {
+        this.press();
+      }
+    })
+
     this.render();
   }
 
   private kPaddingS: number = 1.0;
 
   press() {
-    const pressTime = this.audioCtx.currentTime;
+    const pressTime = this.clipMaster.nearestDownBeat(
+      this.audioCtx.currentTime);
 
     if (this.mode === 'recording') {
       this.loopLengthS = pressTime - this.loopStartS;
@@ -42,6 +50,7 @@ export class BigButton {
 
       const clipCommander = new ClipCommander(this.audioCtx,
         buffer, this.kPaddingS, this.loopLengthS, this.clipMaster);
+      this.clipMaster.start(pressTime);
     }
 
     switch (this.mode) {
