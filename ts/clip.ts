@@ -24,18 +24,21 @@ export class Clip {
     return this.armed;
   }
 
+  private kDownsampleRate = 100;
   public getSamples(centerS: number, target: Float32Array) {
-    const startS = (centerS + this.startOffsetS) - target.length / this.audioCtx.sampleRate;
+    const startS = (centerS + this.startOffsetS) -
+      (target.length * this.kDownsampleRate / this.audioCtx.sampleRate);
     let sourceIndex = Math.round(startS * this.audioCtx.sampleRate);
     console.log(`Source index: ${sourceIndex}`);
     const sampleBuffer = this.buffer.getChannelData(0);
     for (let i = 0; i < target.length; ++i) {
-      if (sourceIndex < 0) {
-        target[i] = 0;
-      } else {
-        target[i] = sampleBuffer[sourceIndex];
+      let m = 0;
+      for (let j = 0; j < this.kDownsampleRate; ++j) {
+        const v = (sourceIndex < 0) ? 0 : sampleBuffer[sourceIndex];
+        m = Math.max(v, m);
+        ++sourceIndex;
       }
-      ++sourceIndex;
+      target[i] = m;
     }
   }
 
