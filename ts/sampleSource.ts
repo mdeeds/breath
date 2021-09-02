@@ -68,7 +68,7 @@ export class SampleSource {
         div.classList.remove('mid');
         div.classList.remove('hig');
       }
-      requestAnimationFrame(render);
+      setTimeout(render, 50);
     }
     requestAnimationFrame(render);
   }

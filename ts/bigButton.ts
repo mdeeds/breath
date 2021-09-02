@@ -60,6 +60,7 @@ export class BigButton {
     if (this.mode === 'recording') {
       this.loopStartS = pressTime;
     }
+    this.render();
   }
 
   render() {
@@ -73,7 +74,5 @@ export class BigButton {
     ctx.lineCap = 'round';
     ctx.arc(200, 200, 150, -Math.PI, Math.PI);
     ctx.stroke();
-
-    requestAnimationFrame(() => { this.render(); });
   }
 }

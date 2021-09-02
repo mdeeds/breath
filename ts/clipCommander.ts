@@ -73,11 +73,15 @@ export class ClipCommander {
 
   private renderPeaks(ctx: CanvasRenderingContext2D, samples: Float32Array) {
     let x = 0;
-    ctx.fillStyle = 'black'
+    ctx.fillStyle = 'red'
+    const r = Math.round(this.canvas.width / 2);
     for (const v of samples) {
       const absV = Math.pow(Math.abs(v), 0.4);
       const h = absV * this.canvas.height;
       const y = this.canvas.height - 0.9 * h;
+      if (x == r) {
+        ctx.fillStyle = '#009';
+      }
       ctx.fillRect(x++, y, 1, absV * this.canvas.height);
     }
   }
@@ -89,12 +93,6 @@ export class ClipCommander {
     const ctx = this.canvas.getContext('2d');
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     const r = this.canvas.width / 2;
-    ctx.strokeStyle = 'purple';
-    ctx.lineWidth = 50;
-    ctx.lineCap = 'round';
-    ctx.arc(r, r, r, -Math.PI, Math.PI);
-    ctx.stroke();
-
     this.clip.getSamples(0, this.samples);
     this.renderPeaks(ctx, this.samples);
 
