@@ -78,7 +78,7 @@ export class ClipCommander {
       const absV = Math.pow(Math.abs(v), 0.4);
       const h = absV * this.canvas.height;
       const y = this.canvas.height - 0.9 * h;
-      if (x == r) {
+      if (x === r) {
         ctx.fillStyle = '#009';
       }
       ctx.fillRect(x++, y, 1, absV * this.canvas.height);
