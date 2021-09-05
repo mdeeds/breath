@@ -1,7 +1,8 @@
 import { Clip } from "./clip";
+import { Sample } from "./sample";
 
 export class ClipMaster {
-  private clips: Clip[] = [];
+  private clips: Sample[] = [];
   private bpmDiv: HTMLSpanElement;
   private bpm: number = null;
   private startTimeS: number = null;
@@ -64,7 +65,7 @@ export class ClipMaster {
     this.startTimeS = startTimeS;
     for (const clip of this.clips) {
       if (clip.isArmed()) {
-        clip.start(startTimeS);
+        clip.startLoop(startTimeS);
       } else {
         clip.stop(startTimeS);
       }

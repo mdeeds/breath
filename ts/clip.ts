@@ -1,7 +1,8 @@
+import { Sample } from "./sample";
 import { MeasuresAndRemainder } from "./measuresAndRemainder";
 import { WavMaker } from "./wavMaker";
 
-export class Clip {
+export class Clip implements Sample {
   private startOffsetS: number;
   private loopDurationS: number;
   private naturalDurationS: number;
@@ -64,7 +65,7 @@ export class Clip {
     }
   }
 
-  public start(startTimeS: number) {
+  private start(startTimeS: number, loop: boolean) {
     // Start cannot be called twice on an AudioBufferSourceNode
     // we must stop the old one and create a new one to restart the sound.
     if (this.audioNode) {
@@ -72,11 +73,21 @@ export class Clip {
     }
     this.audioNode = this.audioCtx.createBufferSource();
     this.audioNode.buffer = this.buffer;
-    this.audioNode.loop = true;
-    this.audioNode.loopStart = this.startOffsetS;
-    this.audioNode.loopEnd = this.startOffsetS + this.loopDurationS;
+    if (loop) {
+      this.audioNode.loop = true;
+      this.audioNode.loopStart = this.startOffsetS;
+      this.audioNode.loopEnd = this.startOffsetS + this.loopDurationS;
+    }
     this.audioNode.connect(this.audioCtx.destination);
     this.audioNode.start(startTimeS, this.startOffsetS);
+  }
+
+  public startLoop(startTimeS: number) {
+    this.start(startTimeS, true);
+  }
+
+  public startOneShot(startTimeS: number) {
+    this.start(startTimeS, false);
   }
 
   public changeStart(deltaS: number) {

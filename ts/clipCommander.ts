@@ -16,8 +16,7 @@ export class ClipCommander {
     clipMaster: ClipMaster) {
     this.audioCtx = audioContext;
     this.clipMaster = clipMaster;
-    this.clip = new Clip(
-      audioContext, buffer, startOffsetS, durationS);
+    this.clip = new Clip(audioContext, buffer, startOffsetS, durationS);
 
     this.div = document.createElement('span');
     this.div.classList.add('clip');
