@@ -23,6 +23,7 @@ export class SampleSource {
       audio: true,
       video: false,
       echoCancellation: false,
+      autoGainControl: false,
       noiseSuppersion: false,
     };
     return new Promise(async (resolve, reject) => {
