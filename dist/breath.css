@@ -39,7 +39,7 @@ body {
 .clip {
   color: darkgray;
   border-radius: 5px;
-  box-shadow: grey 5px 5px 5px;
+  box-shadow: grey 5px 5px 10px;
   margin: 5px;
   display: inline-block;
   width: 80px;
@@ -47,10 +47,16 @@ body {
 }
 
 .clip.focus {
-  box-shadow: pink 5px 5px 3px;
+  box-shadow: pink 5px 5px 10px;
 }
 
 .clip.armed {
   color: black;
   background-color: lightblue;
+}
+
+.bucket {
+  display: inline-block;
+  box-shadow: grey 5px 5px 10px;
+  padding: 5px;
 }

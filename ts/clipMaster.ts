@@ -44,6 +44,20 @@ export class ClipMaster {
         this.start(audioContext.currentTime);
       }
     });
+
+    const bucket = document.createElement('span');
+    bucket.innerText = 'bucket!';
+    bucket.classList.add('bucket');
+    bucket.addEventListener('dragover', (ev: DragEvent) => {
+      ev.dataTransfer.dropEffect = 'move';
+      ev.preventDefault();
+    })
+    bucket.addEventListener('drop', (ev: DragEvent) => {
+      const data = ev.dataTransfer.getData("application/my-app");
+      bucket.appendChild(document.getElementById(data));
+      ev.preventDefault();
+    });
+    body.appendChild(bucket);
   }
 
   public start(startTimeS: number) {

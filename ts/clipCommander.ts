@@ -23,6 +23,7 @@ export class ClipCommander {
     this.div.classList.add('clip');
     this.div.tabIndex = 1;
     this.div.draggable = true;
+    this.div.id = `clip${Math.random()}${window.performance.now()}`;
     this.div.classList.add('armed');
     this.clip.setArmed(true);
     const body = document.getElementsByTagName('body')[0];
@@ -50,10 +51,9 @@ export class ClipCommander {
         this.clipMaster.start(this.audioCtx.currentTime);
       }
     });
-
     this.div.addEventListener('dragstart', async (ev: DragEvent) => {
-      ev.dataTransfer.setData("audio/x-wav", await this.clip.toDataUri());
-      ev.dataTransfer.effectAllowed = "copy";
+      ev.dataTransfer.setData("application/my-app", this.div.id);
+      ev.dataTransfer.effectAllowed = "move";
     });
 
     this.div.addEventListener('pointerdown', (ev: PointerEvent) => {
