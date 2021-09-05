@@ -25,8 +25,8 @@ export class ClipCommander {
     this.div.id = `clip${Math.random()}${window.performance.now()}`;
     this.div.classList.add('armed');
     this.clip.setArmed(true);
-    const body = document.getElementsByTagName('body')[0];
-    body.appendChild(this.div);
+    const workspace = document.getElementById('workspace');
+    workspace.appendChild(this.div);
     this.canvas = document.createElement('canvas');
     this.canvas.width = this.div.clientWidth * 2;
     this.canvas.height = this.div.clientHeight * 2;
@@ -87,7 +87,7 @@ export class ClipCommander {
 
   updateBody() {
     const mar = new MeasuresAndRemainder(this.clip.getDuration(), this.clipMaster.getBpm());
-    this.makeDownload();  // TODO: debounce?
+    this.makeDownload();
 
     const ctx = this.canvas.getContext('2d');
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -100,6 +100,7 @@ export class ClipCommander {
     ctx.fillText(`${mar.measures.toFixed(0)}`, r, r + 90 / 2);
   }
 
+  private downloadTimer: NodeJS.Timeout;
   private async makeDownload() {
     let a: HTMLAnchorElement = null;
     for (const elt of this.div.getElementsByTagName('a')) {
@@ -110,8 +111,16 @@ export class ClipCommander {
       a = document.createElement('a');
       a.download = 'clip.wav';
       a.innerHTML = '&#x21e9;';
+      a.classList.add('download');
       this.div.appendChild(a);
     }
-    a.href = await this.clip.toDataUri();
+    if (this.downloadTimer) {
+      clearTimeout(this.downloadTimer);
+    }
+    a.href = null;
+    this.downloadTimer = setTimeout(async () => {
+      this.downloadTimer = null;
+      a.href = await this.clip.toDataUri();
+    }, 500);
   }
 }

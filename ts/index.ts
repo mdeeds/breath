@@ -12,6 +12,10 @@ async function go() {
   const ss = await SampleSource.make(audio);
   const stream = new SampleStream(ss, audio.audioCtx);
 
+  const workspace = document.createElement('div');
+  workspace.id = 'workspace';
+  document.getElementsByTagName('body')[0].appendChild(workspace);
+
   const bb = new BigButton(audio.audioCtx, stream);
 }
 

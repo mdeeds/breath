@@ -37,6 +37,7 @@ body {
 }
 
 .clip {
+  position: relative;
   color: darkgray;
   border-radius: 5px;
   box-shadow: grey 5px 5px 10px;
@@ -59,4 +60,14 @@ body {
   display: inline-block;
   box-shadow: grey 5px 5px 10px;
   padding: 5px;
+}
+
+.download {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+
+#workspace {
+  position: relative;
 }
