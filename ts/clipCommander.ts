@@ -86,7 +86,7 @@ export class ClipCommander {
   }
 
   updateBody() {
-    const mar = new MeasuresAndRemainder(this.clip.getDuration(), this.clipMaster.getBpm());
+    const mar = new MeasuresAndRemainder(this.clip.getDurationS(), this.clipMaster.getBpm());
     this.makeDownload();
 
     const ctx = this.canvas.getContext('2d');

@@ -4,4 +4,5 @@ export interface Sample {
   startLoop(startTimeS: number): void;
   startOneShot(startTimeS: number): void;
   stop(stopTimeS: number): void;
+  getDurationS(): number;
 }

@@ -115,7 +115,7 @@ export class ClipMaster {
   public addClip(clip: Clip) {
     this.clips.push(clip);
     if (!this.bpm) {
-      this.durationToBeats(clip.getDuration());
+      this.durationToBeats(clip.getDurationS());
     }
     clip.setBpm(this.bpm);
   }

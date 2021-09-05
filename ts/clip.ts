@@ -112,7 +112,7 @@ export class Clip implements Sample {
     });
   }
 
-  public getDuration(): number {
+  public getDurationS(): number {
     return this.naturalDurationS;
   }
 
