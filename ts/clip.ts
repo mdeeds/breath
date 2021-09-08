@@ -10,6 +10,7 @@ export class Clip implements Sample {
   private audioCtx: AudioContext;
   private audioNode: AudioBufferSourceNode = null;
   private armed: boolean;
+  public parent: Sample = null;
 
   constructor(
     audioContext: AudioContext,

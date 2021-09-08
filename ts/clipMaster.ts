@@ -1,13 +1,17 @@
 import { Clip } from "./clip";
+import { Manifest } from "./manifest";
 import { Sample } from "./sample";
+import { Sequence } from "./sequence";
 
 export class ClipMaster {
   private clips: Sample[] = [];
   private bpmDiv: HTMLSpanElement;
   private bpm: number = null;
   private startTimeS: number = null;
+  private audioCtx: AudioContext;
 
   constructor(audioContext: AudioContext) {
+    this.audioCtx = audioContext;
     const body = document.getElementsByTagName('body')[0];
     const bpmContainer = document.createElement('div');
     this.bpmDiv = document.createElement('span');
@@ -64,6 +68,7 @@ export class ClipMaster {
 
   private newBucket(firstElement: HTMLSpanElement) {
     const bucket = document.createElement('span');
+    bucket.id = `bucket${Math.random()}${window.performance.now()}`;
     bucket.classList.add('bucket');
     bucket.addEventListener('dragover', (ev: DragEvent) => {
       ev.dataTransfer.dropEffect = 'move';
@@ -75,6 +80,10 @@ export class ClipMaster {
       ev.preventDefault();
     });
     bucket.appendChild(firstElement);
+    const sample = Manifest.getSampleById(firstElement.id);
+    const sequence = new Sequence(this.audioCtx, sample);
+    Manifest.add(bucket, sample);
+
     const workspace = document.getElementById('workspace');
     workspace.appendChild(bucket);
   }

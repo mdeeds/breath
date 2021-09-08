@@ -1,9 +1,10 @@
 import { Sample } from "./sample";
 
-class Sequence implements Sample {
-  audioCtx: AudioContext;
-  samples: Sample[];
-  loopTimeout: NodeJS.Timeout = null;
+export class Sequence implements Sample {
+  private audioCtx: AudioContext;
+  private samples: Sample[];
+  private loopTimeout: NodeJS.Timeout = null;
+  public parent: Sample = null;
 
   constructor(audioContext: AudioContext, firstSample: Sample) {
     this.audioCtx = audioContext;
@@ -12,6 +13,17 @@ class Sequence implements Sample {
 
   addSample(sample: Sample) {
     this.samples.push(sample);
+    if (sample.parent && sample.parent instanceof Sequence) {
+      sample.parent.removeSample(sample);
+    }
+    sample.parent = this;
+  }
+
+  removeSample(sample: Sample) {
+    const indexToRemove = this.samples.indexOf(sample);
+    if (indexToRemove >= 0) {
+      this.samples.splice(indexToRemove, 1);
+    }
   }
 
   isArmed(): boolean {

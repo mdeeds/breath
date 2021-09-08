@@ -1,5 +1,6 @@
 import { Clip } from "./clip";
 import { ClipMaster } from "./clipMaster";
+import { Manifest } from "./manifest";
 import { MeasuresAndRemainder } from "./measuresAndRemainder";
 
 export class ClipCommander {
@@ -25,6 +26,7 @@ export class ClipCommander {
     this.div.id = `clip${Math.random()}${window.performance.now()}`;
     this.div.classList.add('armed');
     this.clip.setArmed(true);
+    Manifest.add(this.div, this.clip);
     const workspace = document.getElementById('workspace');
     workspace.appendChild(this.div);
     this.canvas = document.createElement('canvas');

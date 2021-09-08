@@ -5,4 +5,5 @@ export interface Sample {
   startOneShot(startTimeS: number): void;
   stop(stopTimeS: number): void;
   getDurationS(): number;
+  parent: Sample;
 }
