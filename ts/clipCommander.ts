@@ -43,8 +43,12 @@ export class ClipCommander {
       switch (ev.code) {
         case 'ArrowRight': this.clip.changeStart(0.01); break;
         case 'ArrowLeft': this.clip.changeStart(-0.01); break;
-        case 'ArrowDown': this.clip.changeDuration(-0.1); break;
-        case 'ArrowUp': this.clip.changeDuration(0.1); break;
+        case 'ArrowDown':
+          this.clip.changeDuration(-0.1, this.clipMaster.getBpm());
+          break;
+        case 'ArrowUp':
+          this.clip.changeDuration(0.1, this.clipMaster.getBpm());
+          break;
         default: actionTaken = false;
       }
       if (actionTaken) {

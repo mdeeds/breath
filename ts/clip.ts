@@ -70,7 +70,7 @@ export class Clip implements Sample {
     // Start cannot be called twice on an AudioBufferSourceNode
     // we must stop the old one and create a new one to restart the sound.
     if (this.audioNode) {
-      this.audioNode.stop();
+      this.audioNode.stop(startTimeS);
     }
     this.audioNode = this.audioCtx.createBufferSource();
     this.audioNode.buffer = this.buffer;
@@ -95,11 +95,13 @@ export class Clip implements Sample {
     this.startOffsetS += deltaS;
   }
 
-  public changeDuration(deltaS: number) {
+  public changeDuration(deltaS: number, bpm: number) {
     this.naturalDurationS += deltaS;
     if (this.naturalDurationS < 0.1) {
       this.naturalDurationS = 0.1;
     }
+    const mar = new MeasuresAndRemainder(this.naturalDurationS, bpm);
+    this.loopDurationS = mar.quantizedS;
   }
 
   public async toDataUri(): Promise<string> {
@@ -120,5 +122,6 @@ export class Clip implements Sample {
   public setBpm(bpm: number) {
     const mar = new MeasuresAndRemainder(this.naturalDurationS, bpm);
     this.loopDurationS = mar.quantizedS;
+    console.log(`BPM set ${JSON.stringify(this)}`);
   }
 }
