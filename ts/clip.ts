@@ -124,4 +124,11 @@ export class Clip implements Sample {
     this.loopDurationS = mar.quantizedS;
     console.log(`BPM set ${JSON.stringify(this)}`);
   }
+
+  getDebugObject(): object {
+    return {
+      duration: this.loopDurationS,
+      armed: this.armed
+    }
+  }
 }

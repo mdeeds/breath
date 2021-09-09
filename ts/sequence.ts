@@ -2,28 +2,31 @@ import { Sample } from "./sample";
 
 export class Sequence implements Sample {
   private audioCtx: AudioContext;
-  private samples: Sample[];
+  private samples: Sample[] = [];
   private loopTimeout: NodeJS.Timeout = null;
   public parent: Sample = null;
 
   constructor(audioContext: AudioContext, firstSample: Sample) {
     this.audioCtx = audioContext;
-    this.samples = [firstSample];
+    this.addSample(firstSample);
   }
 
   addSample(sample: Sample) {
-    this.samples.push(sample);
+    console.log(`AAAAA: addSample`);
     if (sample.parent && sample.parent instanceof Sequence) {
       sample.parent.removeSample(sample);
     }
+    this.samples.push(sample);
     sample.parent = this;
   }
 
   removeSample(sample: Sample) {
     const indexToRemove = this.samples.indexOf(sample);
+    console.log(`AAAAA: removeSample ${indexToRemove}`);
     if (indexToRemove >= 0) {
       this.samples.splice(indexToRemove, 1);
     }
+    sample.parent = null;
   }
 
   isArmed(): boolean {
@@ -74,5 +77,13 @@ export class Sequence implements Sample {
       totalDurationS += s.getDurationS();
     }
     return totalDurationS;
+  }
+
+  getDebugObject(): object {
+    const result = [];
+    for (const s of this.samples) {
+      result.push(s.getDebugObject());
+    }
+    return result;
   }
 }

@@ -1,3 +1,4 @@
+import { DebugObject } from "./debugObject";
 import { Sample } from "./sample";
 import { Sequence } from "./sequence";
 
@@ -24,5 +25,13 @@ export class Manifest {
 
   static getContainerBySample(sample: Sample) {
     return this.containers.get(this.ids.get(sample));
+  }
+
+  static getDebugObject(): object {
+    const sampleArray = [];
+    for (const [k, v] of this.samples.entries()) {
+      sampleArray.push({ id: k, sample: v.getDebugObject() });
+    }
+    return { samples: sampleArray };
   }
 }

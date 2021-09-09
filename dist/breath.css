@@ -71,3 +71,7 @@ body {
 #workspace {
   position: relative;
 }
+
+.debug {
+  white-space: pre-wrap;
+}

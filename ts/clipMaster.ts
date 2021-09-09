@@ -1,10 +1,11 @@
 import { Clip } from "./clip";
+import { DebugObject } from "./debugObject";
 import { Manifest } from "./manifest";
 import { Sample } from "./sample";
-import { Sequence } from "./sequence";
+import { SequenceCommander } from "./sequenceCommander";
 
-export class ClipMaster {
-  private clips: Sample[] = [];
+export class ClipMaster implements DebugObject {
+  private clips: Set<Sample> = new Set<Sample>();
   private bpmDiv: HTMLSpanElement;
   private bpm: number = null;
   private startTimeS: number = null;
@@ -64,34 +65,37 @@ export class ClipMaster {
     });
     const workspace = document.getElementById('workspace');
     workspace.appendChild(bucket);
+
+    const bugContainer = document.createElement('div');
+    const bugButton = document.createElement('span');
+    bugContainer.appendChild(bugButton);
+    bugButton.innerText = 'debug'
+    const debug = document.createElement('textarea');
+    debug.classList.add('debug');
+    debug.contentEditable = "false";
+    debug.innerText = 'Hello, World!';
+    bugContainer.appendChild(debug);
+    body.appendChild(bugContainer);
+
+    bugButton.addEventListener('pointerdown', (ev: PointerEvent) => {
+      debug.value =
+        `clips: ${JSON.stringify(this.getDebugObject(), null, 2)}` +
+        ` manifest: ${JSON.stringify(Manifest.getDebugObject(), null, 2)}`;
+    });
   }
 
   private newBucket(firstElement: HTMLSpanElement) {
-    const bucket = document.createElement('span');
-    bucket.id = `bucket${Math.random()}${window.performance.now()}`;
-    bucket.classList.add('bucket');
-    bucket.addEventListener('dragover', (ev: DragEvent) => {
-      ev.dataTransfer.dropEffect = 'move';
-      ev.preventDefault();
-    })
-    bucket.addEventListener('drop', (ev: DragEvent) => {
-      const data = ev.dataTransfer.getData("application/my-app");
-      bucket.appendChild(document.getElementById(data));
-      ev.preventDefault();
-    });
-    bucket.appendChild(firstElement);
-    const sample = Manifest.getSampleById(firstElement.id);
-    const sequence = new Sequence(this.audioCtx, sample);
-    Manifest.add(bucket, sample);
-
-    const workspace = document.getElementById('workspace');
-    workspace.appendChild(bucket);
+    const sequenceCommander =
+      new SequenceCommander(this.audioCtx,
+        firstElement,
+        document.getElementById('workspace'));
+    this.clips.add(sequenceCommander.getSequence());
   }
 
   public start(startTimeS: number) {
     this.startTimeS = startTimeS;
     for (const clip of this.clips) {
-      if (clip.isArmed()) {
+      if (clip.isArmed() && !clip.parent) {
         clip.startLoop(startTimeS);
       } else {
         clip.stop(startTimeS);
@@ -122,7 +126,7 @@ export class ClipMaster {
   }
 
   public addClip(clip: Clip) {
-    this.clips.push(clip);
+    this.clips.add(clip);
     if (!this.bpm) {
       this.durationToBeats(clip.getDurationS());
     }
@@ -131,5 +135,13 @@ export class ClipMaster {
 
   public getBpm(): number {
     return this.bpm;
+  }
+
+  public getDebugObject() {
+    const result = [];
+    for (const c of this.clips.values()) {
+      result.push(c.getDebugObject());
+    }
+    return result;
   }
 }
