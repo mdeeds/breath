@@ -67,6 +67,9 @@ export class Clip implements Sample {
   }
 
   private start(startTimeS: number, loop: boolean) {
+    if (startTimeS <= 0) {
+      throw new Error(`Bad start time: ${startTimeS}`);
+    }
     // Start cannot be called twice on an AudioBufferSourceNode
     // we must stop the old one and create a new one to restart the sound.
     if (this.audioNode) {
@@ -80,6 +83,7 @@ export class Clip implements Sample {
       this.audioNode.loopEnd = this.startOffsetS + this.loopDurationS;
     }
     this.audioNode.connect(this.audioCtx.destination);
+    console.log(`Starting ${(window.performance.now() / 1000).toFixed(1)}`)
     this.audioNode.start(startTimeS, this.startOffsetS);
   }
 

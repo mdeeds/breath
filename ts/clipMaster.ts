@@ -88,7 +88,8 @@ export class ClipMaster implements DebugObject {
     const sequenceCommander =
       new SequenceCommander(this.audioCtx,
         firstElement,
-        document.getElementById('workspace'));
+        document.getElementById('workspace'),
+        this);  // Very bad horrible circular dependency.
     this.clips.add(sequenceCommander.getSequence());
   }
 

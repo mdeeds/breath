@@ -42,7 +42,8 @@ export class Sequence implements Sample {
     this.startOneShot(startTimeS);
     const nextQueue =
       startTimeS + this.getDurationS();
-    const sleepMs = (this.audioCtx.currentTime - nextQueue - 0.1) * 1000;
+    const sleepMs = (nextQueue - this.audioCtx.currentTime - 0.1) * 1000;
+    console.log(`Sleep: ${sleepMs.toFixed(1)}`);
     clearTimeout(this.loopTimeout);
     this.loopTimeout = setTimeout(() => {
       this.startLoop(nextQueue);
@@ -84,6 +85,6 @@ export class Sequence implements Sample {
     for (const s of this.samples) {
       result.push(s.getDebugObject());
     }
-    return result;
+    return { samples: result, totalDuration: this.getDurationS() };
   }
 }

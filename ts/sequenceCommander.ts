@@ -1,12 +1,15 @@
 import { Sequence } from "./sequence";
 import { Manifest } from "./manifest";
+import { ClipMaster } from "./clipMaster";
 
 export class SequenceCommander {
   private sequence: Sequence;
   private audioCtx: AudioContext;
   constructor(
     audioContext: AudioContext,
-    firstElement: HTMLSpanElement, workspace: HTMLDivElement | HTMLSpanElement) {
+    firstElement: HTMLSpanElement,
+    workspace: HTMLDivElement | HTMLSpanElement,
+    clipMaster: ClipMaster) {
     this.audioCtx = audioContext;
     const bucket = document.createElement('span');
     bucket.id = `bucket${Math.random()}${window.performance.now()}`;
@@ -35,6 +38,7 @@ export class SequenceCommander {
         console.log(`AAAAA: Bucket is not a sequence! ${bucket.id}`);
       }
       ev.preventDefault();
+      clipMaster.start(this.audioCtx.currentTime);
     });
   }
 
