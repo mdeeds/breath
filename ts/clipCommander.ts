@@ -2,6 +2,8 @@ import { Clip } from "./clip";
 import { ClipMaster } from "./clipMaster";
 import { Manifest } from "./manifest";
 import { MeasuresAndRemainder } from "./measuresAndRemainder";
+import { Sequence } from "./sequence";
+import { SequenceCommander } from "./sequenceCommander";
 
 export class ClipCommander {
   private div: HTMLDivElement | HTMLSpanElement;
@@ -74,6 +76,30 @@ export class ClipCommander {
     this.clipMaster.addClip(this.clip);
     this.updateBody();
     this.makeDownload();
+
+    const deleteButton = document.createElement('span');
+    deleteButton.innerHTML = '&#10006';
+    deleteButton.classList.add('delete');
+    this.div.appendChild(deleteButton);
+    deleteButton.addEventListener('pointerdown', (ev: PointerEvent) => {
+      deleteButton.classList.add('pressed');
+      ev.preventDefault();
+    });
+    deleteButton.addEventListener('pointerleave', () => {
+      deleteButton.classList.remove('pressed');
+    });
+    deleteButton.addEventListener('pointerup', (ev: PointerEvent) => {
+      if (this.clip.parent && this.clip.parent instanceof Sequence) {
+        this.clip.parent.removeSample(this.clip);
+      }
+      this.clip.setArmed(false);
+      this.div.remove();
+      ev.preventDefault();
+      this.clipMaster.start(this.audioCtx.currentTime);
+      // We haven't really deleted the clip.  It's just invisible and
+      // muted and not part of any sequence.
+    });
+
   }
 
   private renderPeaks(ctx: CanvasRenderingContext2D, samples: Float32Array) {

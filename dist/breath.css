@@ -68,6 +68,21 @@ body {
   top: 0px;
 }
 
+.delete {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  background-color: #fff4;
+  color: black;
+  border-style: outset;
+  border-width: 2px;
+  border-radius: 4px;
+}
+
+.delete.pressed {
+  border-style: inset;
+}
+
 #workspace {
   position: relative;
 }
