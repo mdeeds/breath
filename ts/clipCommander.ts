@@ -99,7 +99,6 @@ export class ClipCommander {
       // We haven't really deleted the clip.  It's just invisible and
       // muted and not part of any sequence.
     });
-
   }
 
   private renderPeaks(ctx: CanvasRenderingContext2D, samples: Float32Array) {
