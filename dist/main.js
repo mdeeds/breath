@@ -78,14 +78,20 @@ class BigButton {
         });
         const body = document.getElementsByTagName('body')[0];
         body.appendChild(this.canvas);
+        body.addEventListener('keydown', (ev) => {
+            if (ev.code === 'Space') {
+                this.press();
+            }
+        });
         this.render();
     }
     press() {
-        const pressTime = this.audioCtx.currentTime;
+        const pressTime = this.clipMaster.nearestDownBeat(this.audioCtx.currentTime);
         if (this.mode === 'recording') {
             this.loopLengthS = pressTime - this.loopStartS;
             const buffer = this.sampleStream.createAudioBuffer(this.loopStartS - this.kPaddingS, pressTime + this.kPaddingS);
             const clipCommander = new clipCommander_1.ClipCommander(this.audioCtx, buffer, this.kPaddingS, this.loopLengthS, this.clipMaster);
+            this.clipMaster.start(pressTime);
         }
         switch (this.mode) {
             case 'stopped':
@@ -98,6 +104,7 @@ class BigButton {
         if (this.mode === 'recording') {
             this.loopStartS = pressTime;
         }
+        this.render();
     }
     render() {
         const ctx = this.canvas.getContext('2d');
@@ -114,7 +121,6 @@ class BigButton {
         ctx.lineCap = 'round';
         ctx.arc(200, 200, 150, -Math.PI, Math.PI);
         ctx.stroke();
-        requestAnimationFrame(() => { this.render(); });
     }
 }
 exports.BigButton = BigButton;
@@ -142,15 +148,32 @@ const wavMaker_1 = __webpack_require__(173);
 class Clip {
     constructor(audioContext, buffer, startOffsetS, durationS) {
         this.audioNode = null;
+        this.parent = null;
+        this.kDownsampleRate = 100;
         this.audioCtx = audioContext;
         this.startOffsetS = startOffsetS;
         this.naturalDurationS = durationS;
         this.loopDurationS = durationS;
         this.buffer = buffer;
-        this.armed = false;
     }
     isArmed() {
         return this.armed;
+    }
+    getSamples(centerS, target) {
+        const startS = (centerS + this.startOffsetS) -
+            (target.length * this.kDownsampleRate / this.audioCtx.sampleRate);
+        let sourceIndex = Math.round(startS * this.audioCtx.sampleRate);
+        console.log(`Source index: ${sourceIndex}`);
+        const sampleBuffer = this.buffer.getChannelData(0);
+        for (let i = 0; i < target.length; ++i) {
+            let m = 0;
+            for (let j = 0; j < this.kDownsampleRate; ++j) {
+                const v = (sourceIndex < 0) ? 0 : sampleBuffer[sourceIndex];
+                m = Math.max(v, m);
+                ++sourceIndex;
+            }
+            target[i] = m;
+        }
     }
     setArmed(armed) {
         this.armed = armed;
@@ -172,28 +195,42 @@ class Clip {
             this.audioNode = null;
         }
     }
-    start(startTimeS) {
+    start(startTimeS, loop) {
+        if (startTimeS <= 0) {
+            throw new Error(`Bad start time: ${startTimeS}`);
+        }
         // Start cannot be called twice on an AudioBufferSourceNode
         // we must stop the old one and create a new one to restart the sound.
         if (this.audioNode) {
-            this.audioNode.stop();
+            this.audioNode.stop(startTimeS);
         }
         this.audioNode = this.audioCtx.createBufferSource();
         this.audioNode.buffer = this.buffer;
-        this.audioNode.loop = true;
-        this.audioNode.loopStart = this.startOffsetS;
-        this.audioNode.loopEnd = this.startOffsetS + this.loopDurationS;
+        if (loop) {
+            this.audioNode.loop = true;
+            this.audioNode.loopStart = this.startOffsetS;
+            this.audioNode.loopEnd = this.startOffsetS + this.loopDurationS;
+        }
         this.audioNode.connect(this.audioCtx.destination);
+        console.log(`Starting ${(window.performance.now() / 1000).toFixed(1)}`);
         this.audioNode.start(startTimeS, this.startOffsetS);
+    }
+    startLoop(startTimeS) {
+        this.start(startTimeS, true);
+    }
+    startOneShot(startTimeS) {
+        this.start(startTimeS, false);
     }
     changeStart(deltaS) {
         this.startOffsetS += deltaS;
     }
-    changeDuration(deltaS) {
+    changeDuration(deltaS, bpm) {
         this.naturalDurationS += deltaS;
         if (this.naturalDurationS < 0.1) {
             this.naturalDurationS = 0.1;
         }
+        const mar = new measuresAndRemainder_1.MeasuresAndRemainder(this.naturalDurationS, bpm);
+        this.loopDurationS = mar.quantizedS;
     }
     toDataUri() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -206,12 +243,19 @@ class Clip {
             });
         });
     }
-    getDuration() {
+    getDurationS() {
         return this.naturalDurationS;
     }
     setBpm(bpm) {
         const mar = new measuresAndRemainder_1.MeasuresAndRemainder(this.naturalDurationS, bpm);
         this.loopDurationS = mar.quantizedS;
+        console.log(`BPM set ${JSON.stringify(this)}`);
+    }
+    getDebugObject() {
+        return {
+            duration: this.loopDurationS,
+            armed: this.armed
+        };
     }
 }
 exports.Clip = Clip;
@@ -235,19 +279,31 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ClipCommander = void 0;
 const clip_1 = __webpack_require__(721);
+const manifest_1 = __webpack_require__(906);
 const measuresAndRemainder_1 = __webpack_require__(214);
+const sequence_1 = __webpack_require__(500);
 class ClipCommander {
     constructor(audioContext, buffer, startOffsetS, durationS, clipMaster) {
         this.audioCtx = audioContext;
         this.clipMaster = clipMaster;
         this.clip = new clip_1.Clip(audioContext, buffer, startOffsetS, durationS);
         this.div = document.createElement('span');
-        this.div.innerText = 'clip';
         this.div.classList.add('clip');
         this.div.tabIndex = 1;
         this.div.draggable = true;
-        const body = document.getElementsByTagName('body')[0];
-        body.appendChild(this.div);
+        this.div.id = `clip${Math.random()}${window.performance.now()}`;
+        this.div.classList.add('armed');
+        this.clip.setArmed(true);
+        manifest_1.Manifest.add(this.div, this.clip);
+        const workspace = document.getElementById('workspace');
+        workspace.appendChild(this.div);
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = this.div.clientWidth * 2;
+        this.canvas.height = this.div.clientHeight * 2;
+        this.canvas.style.setProperty('width', `${this.div.clientWidth}px`);
+        this.canvas.style.setProperty('height', `${this.div.clientHeight}px`);
+        this.div.appendChild(this.canvas);
+        this.samples = new Float32Array(this.canvas.width);
         this.div.addEventListener('keydown', (ev) => {
             let actionTaken = true;
             switch (ev.code) {
@@ -258,32 +314,81 @@ class ClipCommander {
                     this.clip.changeStart(-0.01);
                     break;
                 case 'ArrowDown':
-                    this.clip.changeDuration(-0.1);
+                    this.clip.changeDuration(-0.1, this.clipMaster.getBpm());
                     break;
                 case 'ArrowUp':
-                    this.clip.changeDuration(0.1);
+                    this.clip.changeDuration(0.1, this.clipMaster.getBpm());
                     break;
                 default: actionTaken = false;
             }
             if (actionTaken) {
-                const mar = new measuresAndRemainder_1.MeasuresAndRemainder(this.clip.getDuration(), this.clipMaster.getBpm());
-                this.div.innerText =
-                    `${mar.measures} bars (${mar.remainderS.toFixed(3)})`;
-                this.makeDownload(); // TODO: debounce?
-                this.clipMaster.start(audioContext.currentTime);
+                this.updateBody();
+                this.clipMaster.start(this.audioCtx.currentTime);
             }
         });
         this.div.addEventListener('dragstart', (ev) => __awaiter(this, void 0, void 0, function* () {
-            ev.dataTransfer.setData("audio/x-wav", yield this.clip.toDataUri());
-            ev.dataTransfer.effectAllowed = "copy";
+            ev.dataTransfer.setData("application/my-app", this.div.id);
+            ev.dataTransfer.effectAllowed = "move";
         }));
         this.div.addEventListener('pointerdown', (ev) => {
+            if (this.div != document.activeElement) {
+                this.div.focus();
+                return;
+            }
             this.div.classList.toggle('armed');
             this.clip.setArmed(this.div.classList.contains('armed'));
             this.clipMaster.start(this.audioCtx.currentTime);
         });
         this.clipMaster.addClip(this.clip);
+        this.updateBody();
         this.makeDownload();
+        const deleteButton = document.createElement('span');
+        deleteButton.innerHTML = '&#10006';
+        deleteButton.classList.add('delete');
+        this.div.appendChild(deleteButton);
+        deleteButton.addEventListener('pointerdown', (ev) => {
+            deleteButton.classList.add('pressed');
+            ev.preventDefault();
+        });
+        deleteButton.addEventListener('pointerleave', () => {
+            deleteButton.classList.remove('pressed');
+        });
+        deleteButton.addEventListener('pointerup', (ev) => {
+            if (this.clip.parent && this.clip.parent instanceof sequence_1.Sequence) {
+                this.clip.parent.removeSample(this.clip);
+            }
+            this.clip.setArmed(false);
+            this.div.remove();
+            ev.preventDefault();
+            // We haven't really deleted the clip.  It's just invisible and
+            // muted and not part of any sequence.
+        });
+    }
+    renderPeaks(ctx, samples) {
+        let x = 0;
+        ctx.fillStyle = 'red';
+        const r = Math.round(this.canvas.width / 2);
+        for (const v of samples) {
+            const absV = Math.pow(Math.abs(v), 0.4);
+            const h = absV * this.canvas.height;
+            const y = this.canvas.height - 0.9 * h;
+            if (x === r) {
+                ctx.fillStyle = '#009';
+            }
+            ctx.fillRect(x++, y, 1, absV * this.canvas.height);
+        }
+    }
+    updateBody() {
+        const mar = new measuresAndRemainder_1.MeasuresAndRemainder(this.clip.getDurationS(), this.clipMaster.getBpm());
+        this.makeDownload();
+        const ctx = this.canvas.getContext('2d');
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        const r = this.canvas.width / 2;
+        this.clip.getSamples(0, this.samples);
+        this.renderPeaks(ctx, this.samples);
+        ctx.font = 'bold 90px mono';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${mar.measures.toFixed(0)}`, r, r + 90 / 2);
     }
     makeDownload() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -295,10 +400,18 @@ class ClipCommander {
             if (a === null) {
                 a = document.createElement('a');
                 a.download = 'clip.wav';
-                a.innerText = 'download';
+                a.innerHTML = '&#x21e9;';
+                a.classList.add('download');
                 this.div.appendChild(a);
             }
-            a.href = yield this.clip.toDataUri();
+            if (this.downloadTimer) {
+                clearTimeout(this.downloadTimer);
+            }
+            a.href = null;
+            this.downloadTimer = setTimeout(() => __awaiter(this, void 0, void 0, function* () {
+                this.downloadTimer = null;
+                a.href = yield this.clip.toDataUri();
+            }), 500);
         });
     }
 }
@@ -308,15 +421,19 @@ exports.ClipCommander = ClipCommander;
 /***/ }),
 
 /***/ 977:
-/***/ ((__unused_webpack_module, exports) => {
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ClipMaster = void 0;
+const manifest_1 = __webpack_require__(906);
+const sequenceCommander_1 = __webpack_require__(481);
 class ClipMaster {
     constructor(audioContext) {
-        this.clips = [];
+        this.clips = new Set();
         this.bpm = null;
+        this.startTimeS = null;
+        this.audioCtx = audioContext;
         const body = document.getElementsByTagName('body')[0];
         const bpmContainer = document.createElement('div');
         this.bpmDiv = document.createElement('span');
@@ -356,16 +473,59 @@ class ClipMaster {
                 this.start(audioContext.currentTime);
             }
         });
+        const bucket = document.createElement('span');
+        bucket.innerText = '+ new bucket';
+        bucket.classList.add('bucket');
+        bucket.addEventListener('dragover', (ev) => {
+            ev.dataTransfer.dropEffect = 'move';
+            ev.preventDefault();
+        });
+        bucket.addEventListener('drop', (ev) => {
+            const data = ev.dataTransfer.getData("application/my-app");
+            this.newBucket(document.getElementById(data));
+            ev.preventDefault();
+        });
+        const workspace = document.getElementById('workspace');
+        workspace.appendChild(bucket);
+        const bugContainer = document.createElement('div');
+        const bugButton = document.createElement('span');
+        bugContainer.appendChild(bugButton);
+        bugButton.innerText = 'debug';
+        const debug = document.createElement('textarea');
+        debug.classList.add('debug');
+        debug.contentEditable = "false";
+        debug.innerText = 'Hello, World!';
+        bugContainer.appendChild(debug);
+        body.appendChild(bugContainer);
+        bugButton.addEventListener('pointerdown', (ev) => {
+            debug.value =
+                `clips: ${JSON.stringify(this.getDebugObject(), null, 2)}` +
+                    ` manifest: ${JSON.stringify(manifest_1.Manifest.getDebugObject(), null, 2)}`;
+        });
+    }
+    newBucket(firstElement) {
+        const sequenceCommander = new sequenceCommander_1.SequenceCommander(this.audioCtx, firstElement, document.getElementById('workspace'), this); // Very bad horrible circular dependency.
+        this.clips.add(sequenceCommander.getSequence());
     }
     start(startTimeS) {
+        this.startTimeS = startTimeS;
         for (const clip of this.clips) {
-            if (clip.isArmed()) {
-                clip.start(startTimeS);
+            if (clip.isArmed() && !clip.parent) {
+                clip.startLoop(startTimeS);
             }
             else {
                 clip.stop(startTimeS);
             }
         }
+    }
+    nearestDownBeat(referenceTimeS) {
+        if (!this.startTimeS || !this.bpm) {
+            return referenceTimeS;
+        }
+        const elapsed = referenceTimeS - this.startTimeS;
+        const secondsPerMeasure = 4 * 60 / this.bpm;
+        const measureNumber = Math.round(elapsed / secondsPerMeasure);
+        return this.startTimeS + measureNumber * secondsPerMeasure;
     }
     durationToBeats(durationS) {
         let bpm = 60.0 / durationS;
@@ -379,14 +539,21 @@ class ClipMaster {
         this.bpmDiv.innerText = bpm.toFixed(1);
     }
     addClip(clip) {
-        this.clips.push(clip);
+        this.clips.add(clip);
         if (!this.bpm) {
-            this.durationToBeats(clip.getDuration());
+            this.durationToBeats(clip.getDurationS());
         }
         clip.setBpm(this.bpm);
     }
     getBpm() {
         return this.bpm;
+    }
+    getDebugObject() {
+        const result = [];
+        for (const c of this.clips.values()) {
+            result.push(c.getDebugObject());
+        }
+        return result;
     }
 }
 exports.ClipMaster = ClipMaster;
@@ -410,21 +577,60 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const audio_1 = __webpack_require__(458);
 const bigButton_1 = __webpack_require__(346);
-const memory_1 = __webpack_require__(898);
 const sampleSource_1 = __webpack_require__(930);
 const sampleStream_1 = __webpack_require__(387);
 console.log("Breathe.");
 function go() {
     return __awaiter(this, void 0, void 0, function* () {
-        const m = new memory_1.Memory();
+        //const m = new Memory();
         const audio = yield audio_1.Audio.make();
         const ss = yield sampleSource_1.SampleSource.make(audio);
         const stream = new sampleStream_1.SampleStream(ss, audio.audioCtx);
+        const workspace = document.createElement('div');
+        workspace.id = 'workspace';
+        document.getElementsByTagName('body')[0].appendChild(workspace);
         const bb = new bigButton_1.BigButton(audio.audioCtx, stream);
     });
 }
 go();
 //# sourceMappingURL=index.js.map
+
+/***/ }),
+
+/***/ 906:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Manifest = void 0;
+class Manifest {
+    static add(container, sample) {
+        Manifest.samples.set(container.id, sample);
+        Manifest.containers.set(container.id, container);
+        Manifest.ids.set(sample, container.id);
+    }
+    static getSampleById(id) {
+        return this.samples.get(id);
+    }
+    static getContainerById(id) {
+        return this.containers.get(id);
+    }
+    static getContainerBySample(sample) {
+        return this.containers.get(this.ids.get(sample));
+    }
+    static getDebugObject() {
+        const sampleArray = [];
+        for (const [k, v] of this.samples.entries()) {
+            sampleArray.push({ id: k, sample: v.getDebugObject() });
+        }
+        return { samples: sampleArray };
+    }
+}
+exports.Manifest = Manifest;
+Manifest.samples = new Map();
+Manifest.containers = new Map();
+Manifest.ids = new Map();
+//# sourceMappingURL=manifest.js.map
 
 /***/ }),
 
@@ -446,31 +652,6 @@ class MeasuresAndRemainder {
 }
 exports.MeasuresAndRemainder = MeasuresAndRemainder;
 //# sourceMappingURL=measuresAndRemainder.js.map
-
-/***/ }),
-
-/***/ 898:
-/***/ ((__unused_webpack_module, exports) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Memory = void 0;
-class Memory {
-    constructor() {
-        const div = document.createElement('div');
-        const body = document.getElementsByTagName('body')[0];
-        body.appendChild(div);
-        const f = function () {
-            div.innerText = (window.performance
-                .memory.usedJSHeapSize / 1000000).toFixed(3)
-                + "MB";
-            setTimeout(f, 100);
-        };
-        f();
-    }
-}
-exports.Memory = Memory;
-//# sourceMappingURL=memory.js.map
 
 /***/ }),
 
@@ -503,6 +684,7 @@ class SampleSource {
             audio: true,
             video: false,
             echoCancellation: false,
+            autoGainControl: false,
             noiseSuppersion: false,
         };
         return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
@@ -545,7 +727,7 @@ class SampleSource {
                 div.classList.remove('mid');
                 div.classList.remove('hig');
             }
-            requestAnimationFrame(render);
+            setTimeout(render, 50);
         };
         requestAnimationFrame(render);
     }
@@ -664,6 +846,141 @@ class SampleStream {
 }
 exports.SampleStream = SampleStream;
 //# sourceMappingURL=sampleStream.js.map
+
+/***/ }),
+
+/***/ 500:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Sequence = void 0;
+class Sequence {
+    constructor(audioContext, firstSample) {
+        this.samples = [];
+        this.loopTimeout = null;
+        this.parent = null;
+        this.audioCtx = audioContext;
+        this.addSample(firstSample);
+    }
+    addSample(sample) {
+        console.log(`AAAAA: addSample`);
+        if (sample.parent && sample.parent instanceof Sequence) {
+            sample.parent.removeSample(sample);
+        }
+        this.samples.push(sample);
+        sample.parent = this;
+    }
+    removeSample(sample) {
+        const indexToRemove = this.samples.indexOf(sample);
+        console.log(`AAAAA: removeSample ${indexToRemove}`);
+        if (indexToRemove >= 0) {
+            this.samples.splice(indexToRemove, 1);
+        }
+        sample.parent = null;
+    }
+    isArmed() {
+        for (const s of this.samples) {
+            if (s.isArmed()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    startLoop(startTimeS) {
+        this.startOneShot(startTimeS);
+        const nextQueue = startTimeS + this.getDurationS();
+        const sleepMs = (nextQueue - this.audioCtx.currentTime - 0.1) * 1000;
+        console.log(`Sleep: ${sleepMs.toFixed(1)}`);
+        clearTimeout(this.loopTimeout);
+        this.loopTimeout = setTimeout(() => {
+            this.startLoop(nextQueue);
+        }, sleepMs);
+    }
+    startOneShot(startTimeS) {
+        let cueTimeS = startTimeS;
+        for (const s of this.samples) {
+            s.startOneShot(cueTimeS);
+            cueTimeS += s.getDurationS();
+        }
+    }
+    stop(stopTimeS) {
+        clearTimeout(this.loopTimeout);
+        this.loopTimeout = null;
+        for (const s of this.samples) {
+            s.stop(stopTimeS);
+        }
+    }
+    setBpm(bpm) {
+        for (const s of this.samples) {
+            s.setBpm(bpm);
+        }
+    }
+    getDurationS() {
+        let totalDurationS = 0;
+        for (const s of this.samples) {
+            totalDurationS += s.getDurationS();
+        }
+        return totalDurationS;
+    }
+    getDebugObject() {
+        const result = [];
+        for (const s of this.samples) {
+            result.push(s.getDebugObject());
+        }
+        return { samples: result, totalDuration: this.getDurationS() };
+    }
+}
+exports.Sequence = Sequence;
+//# sourceMappingURL=sequence.js.map
+
+/***/ }),
+
+/***/ 481:
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SequenceCommander = void 0;
+const sequence_1 = __webpack_require__(500);
+const manifest_1 = __webpack_require__(906);
+class SequenceCommander {
+    constructor(audioContext, firstElement, workspace, clipMaster) {
+        this.audioCtx = audioContext;
+        const bucket = document.createElement('span');
+        bucket.id = `bucket${Math.random()}${window.performance.now()}`;
+        bucket.classList.add('bucket');
+        bucket.appendChild(firstElement);
+        workspace.appendChild(bucket);
+        const firstSample = manifest_1.Manifest.getSampleById(firstElement.id);
+        this.sequence = new sequence_1.Sequence(this.audioCtx, firstSample);
+        manifest_1.Manifest.add(bucket, this.sequence);
+        bucket.addEventListener('dragover', (ev) => {
+            ev.dataTransfer.dropEffect = 'move';
+            ev.preventDefault();
+        });
+        bucket.addEventListener('drop', (ev) => {
+            console.log(`AAAAA: Drop into existing`);
+            const data = ev.dataTransfer.getData("application/my-app");
+            bucket.appendChild(document.getElementById(data));
+            const sample = manifest_1.Manifest.getSampleById(data);
+            const sequence = manifest_1.Manifest.getSampleById(bucket.id);
+            if (sequence instanceof sequence_1.Sequence) {
+                sequence.addSample(sample);
+            }
+            else {
+                console.log(`AAAAA: Bucket is not a sequence! ${bucket.id}`);
+            }
+            ev.preventDefault();
+            clipMaster.start(this.audioCtx.currentTime);
+        });
+    }
+    getSequence() {
+        return this.sequence;
+    }
+}
+exports.SequenceCommander = SequenceCommander;
+//# sourceMappingURL=sequenceCommander.js.map
 
 /***/ }),
 
